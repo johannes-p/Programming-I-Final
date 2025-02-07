@@ -28,7 +28,9 @@ To secure a positive grade, the following tasks are implemented:
 ## ✨ Additional Work (Optional Extensions)
 To achieve a better grade, the following extensions are implemented:
 
-🛠️ Coming soon... 🚀
+- [x] **SVG Trajectory**: Save the flight path as an `.svg` file.
+  
+🚀 The journey continues... More coming soon! 🌠
 
 ---
 

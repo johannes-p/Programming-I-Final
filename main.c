@@ -139,9 +139,34 @@ double Average(double values[], int size) {
   return sum / size;
 }
 
+void save_svg(Vec2D positions[], double offset) {
+  FILE *path_line_svg = fopen("line.svg", "w");
+
+  fprintf(path_line_svg,
+          "<svg width=\"%f\" height=\"%f\" version=\"1.1\" "
+          "xmlns=\"http://www.w3.org/2000/svg\">",
+          2 * offset, 2 * offset);
+
+  for (int i = 0; i < 99; i++) {
+    double x1, x2, y1, y2 = 0;
+    // Invert y-axis coordinates: SVGs positive y points downwards
+    // Offset values: to keep the elements within the visible area
+    x1 = positions[i].x + offset;
+    y1 = -positions[i].y + offset;
+    x2 = positions[i + 1].x + offset;
+    y2 = -positions[i + 1].y + offset;
+    fprintf(path_line_svg,
+            "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" stroke=\"%s\" "
+            "stroke-width=\"%d\"/>\n",
+            x1, y1, x2, y2, "orange", 5);
+  }
+  fprintf(path_line_svg, "</svg>");
+}
+
 int main() {
   FILE *csv = fopen("spaceship_data_angabe.csv", "r");
   FILE *out = fopen("positions.csv", "w");
+  Vec2D positions[100];
 
   fprintf(out, "x,y\n");
 
@@ -162,6 +187,8 @@ int main() {
     double average = 0;
 
     while (feof(csv) == 0) {
+      positions[num_of_timesteps] = current_position;
+
       double rotation;
       double acceleration;
       double temperature;
@@ -190,6 +217,8 @@ int main() {
     printf("Temperature variance: %lf\n\n", variance);
     printf("Max. Euclidean distance to start: %lf\n", max_distance);
     printf("Total distance: %lf", total_distance);
+
+    save_svg(positions, max_distance);
   }
   fclose(csv);
   fclose(out);
