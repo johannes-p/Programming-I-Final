@@ -29,6 +29,7 @@ To secure a positive grade, the following tasks are implemented:
 To achieve a better grade, the following extensions are implemented:
 
 - [x] **SVG Trajectory**: Save the flight path as an `.svg` file.
+- [x] **SVG Heatmap**: Save a heatmap based on averaged temperatures as an `.svg` file.
   
 🚀 The journey continues... More coming soon! 🌠
 

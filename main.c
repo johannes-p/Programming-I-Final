@@ -4,6 +4,7 @@
  * Due: 2025-02-23
  */
 
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -163,10 +164,158 @@ void save_svg(Vec2D positions[], double offset) {
   fprintf(path_line_svg, "</svg>");
 }
 
+void temperature_map(Vec2D positions[], double temperatures[],
+                     int total_timesteps, int matrix_resolution,
+                     double matrix[matrix_resolution][matrix_resolution]) {
+
+  int count[matrix_resolution][matrix_resolution]; // Number of values per cell
+
+  // Initialize arrays
+  for (int i = 0; i < matrix_resolution; i++) {
+    for (int j = 0; j < matrix_resolution; j++) {
+      matrix[i][j] = -DBL_MAX; // Uninitialized marker
+      count[i][j] = 0;
+    }
+  }
+
+  // Find min/max coordinates
+  // DBL_MAX is the biggest number a "double" can hold (provided by float.h)
+  double min_x = DBL_MAX, min_y = DBL_MAX;
+  double max_x = -DBL_MAX, max_y = -DBL_MAX;
+
+  for (int i = 0; i < total_timesteps; i++) {
+    if (positions[i].x < min_x)
+      min_x = positions[i].x;
+    if (positions[i].y < min_y)
+      min_y = positions[i].y;
+    if (positions[i].x > max_x)
+      max_x = positions[i].x;
+    if (positions[i].y > max_y)
+      max_y = positions[i].y;
+  }
+
+  // Calculate the span of one grid cell
+  double grid_width = (max_x - min_x) / matrix_resolution;
+  double grid_height = (max_y - min_y) / matrix_resolution;
+
+  // Assign points to grid cells
+  for (int i = 0; i < total_timesteps; i++) {
+    // Determine to which grid cell a measuring point belongs
+    int grid_x = (int)((positions[i].x - min_x) / grid_width);
+    int grid_y = (int)((positions[i].y - min_y) / grid_height);
+
+    // Ensure within bounds
+    if (grid_x >= 0 && grid_x < matrix_resolution && grid_y >= 0 &&
+        grid_y < matrix_resolution) {
+      if (matrix[grid_x][grid_y] == -DBL_MAX) {
+        // First time a value would be added to a grid cell, set it to that
+        // temperature value
+        matrix[grid_x][grid_y] = temperatures[i];
+      } else {
+        matrix[grid_x][grid_y] += temperatures[i]; // Sum up temperature
+      }
+      // Increase "number of added values" - used to calculate the avg
+      count[grid_x][grid_y]++;
+    }
+  }
+
+  // Compute averages
+  // The direction of iteration is predetermined by how the trajectory is
+  // expected to be oriented
+  for (int j = matrix_resolution - 1; j >= 0; j--) {
+    // Go through columns from right to left
+    for (int i = 0; i < matrix_resolution; i++) {
+      // Go through rows top to bottom
+      if (count[i][j] > 0) {
+        matrix[i][j] /= count[i][j]; // calculate average temperature
+      }
+      printf(matrix[i][j] > -DBL_MAX ? " ■ " : " ? ");
+      // printf(matrix[i][j] > -DBL_MAX ? " %.1lf " : " ? ", matrix[i][j]);
+    }
+    printf("\n");
+  }
+}
+
+void save_temperature_map_svg(double *matrix, int resolution) {
+  const char *filename = "temperature_map.svg";
+  FILE *file = fopen(filename, "w");
+  if (!file) {
+    printf("Error: Could not open file %s for writing.\n", filename);
+    return;
+  }
+
+  int cell_size = 20;
+
+  // calculate required svg width/height
+  int width = resolution * cell_size;
+  int height = resolution * cell_size;
+
+  fprintf(
+      file,
+      "<svg width=\"%d\" height=\"%d\" xmlns=\"http://www.w3.org/2000/svg\" "
+      "style=\"transform:rotate(-90deg)\">\n",
+      width, height);
+
+  double min_temp = DBL_MAX, max_temp = -DBL_MAX;
+
+  // Find min/max temperatures
+  for (int i = 0; i < resolution; i++) {
+    for (int j = 0; j < resolution; j++) {
+      double temp = matrix[i * resolution + j];
+      if (temp > -DBL_MAX) { // Ignore "uninitialized" (-DBL_MAX)
+        if (temp < min_temp)
+          min_temp = temp;
+        if (temp > max_temp)
+          max_temp = temp;
+      }
+    }
+  }
+
+  // Prevent division by zero (when calculating normalized temperature)
+  if (max_temp == min_temp) {
+    max_temp += 1.0;
+  }
+
+  // Place SVG rectangles
+  // A style attribute on the SVG ensures the correct trajectory orientation
+  // instead of changing the iteration direction
+  for (int i = 0; i < resolution; i++) {
+    for (int j = 0; j < resolution; j++) {
+      if (matrix[i * resolution + j] == -DBL_MAX) {
+        fprintf(file,
+                "<rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" "
+                "fill=\"rgb(0,0,0)\" />\n",
+                j * cell_size, i * cell_size, cell_size, cell_size);
+      } else {
+        // Normalize temperature to [0,1] for color intensity
+        double norm_temp =
+            (matrix[i * resolution + j] - min_temp) / (max_temp - min_temp);
+        int red = (int)(255 * norm_temp);
+        int blue = (int)(255 * (1 - norm_temp));
+        int green = 0;
+
+        fprintf(file,
+                "<rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" "
+                "fill=\"rgb(%d,%d,%d)\" />\n",
+                j * cell_size, i * cell_size, cell_size, cell_size, red, green,
+                blue);
+      }
+    }
+  }
+
+  fprintf(file, "</svg>\n");
+  fclose(file);
+  printf("SVG file saved as %s\n", filename);
+}
+
 int main() {
   FILE *csv = fopen("spaceship_data_angabe.csv", "r");
   FILE *out = fopen("positions.csv", "w");
   Vec2D positions[100];
+  double temperatures[100];
+
+  int matrix_resolution = 25;
+  double temperature_matrix[matrix_resolution][matrix_resolution];
 
   fprintf(out, "x,y\n");
 
@@ -192,6 +341,9 @@ int main() {
       double rotation;
       double acceleration;
       double temperature;
+
+      temperatures[num_of_timesteps] = temperature;
+
       fscanf(csv, "%lf,%lf,%lf\n", &acceleration, &rotation, &temperature);
 
       rotate(rotation, current_rotation, &current_rotation);
@@ -216,9 +368,12 @@ int main() {
     printf("Temperature avg: %lf\n", average);
     printf("Temperature variance: %lf\n\n", variance);
     printf("Max. Euclidean distance to start: %lf\n", max_distance);
-    printf("Total distance: %lf", total_distance);
+    printf("Total distance: %lf\n", total_distance);
 
     save_svg(positions, max_distance);
+    temperature_map(positions, temperatures, 100, matrix_resolution,
+                    temperature_matrix);
+    save_temperature_map_svg(*temperature_matrix, matrix_resolution);
   }
   fclose(csv);
   fclose(out);
