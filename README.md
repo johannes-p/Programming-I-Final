@@ -9,6 +9,28 @@ This project is part of the **"Programmieren I"** course and is centered around 
 
 ---
 
+## ▶️ Usage 
+
+### **Compilation**  
+To compile the program, use the following command:  
+
+```sh
+gcc main.c latex_report.c -o [output_filename]
+```
+
+Replace `[output_filename]` with your desired executable name.  
+
+### **LaTeX Compilation**  
+To compile the LaTeX report, use:  
+
+```sh
+pdflatex report.tex --shell-escape
+```
+
+The `--shell-escape` flag is required for SVG generation. Ensure that **Inkscape** is installed and available in your system’s PATH for proper conversion.  
+
+---
+
 ## ✅ Minimum Grading Criteria Checklist
 To secure a positive grade, the following tasks are implemented:
 
@@ -30,6 +52,7 @@ To achieve a better grade, the following extensions are implemented:
 
 - [x] **SVG Trajectory**: Save the flight path as an `.svg` file.
 - [x] **SVG Heatmap**: Save a heatmap based on averaged temperatures as an `.svg` file.
+- [x] **LaTeX Report**: Generate a report containing all calculated values and visuals.
   
 🚀 The journey continues... More coming soon! 🌠
 

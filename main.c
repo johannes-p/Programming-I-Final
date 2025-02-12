@@ -4,6 +4,7 @@
  * Due: 2025-02-23
  */
 
+#include "latex_report.h"
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
@@ -140,6 +141,12 @@ double Average(double values[], int size) {
   return sum / size;
 }
 
+/**
+ * @brief Saves a path defined by 2D Coordinates in SVG format.
+ *
+ * @param positions Array of 2D coordinates representing the path.
+ * @param offset Offset value to position the path within the visible area.
+ */
 void save_svg(Vec2D positions[], double offset) {
   FILE *path_line_svg = fopen("line.svg", "w");
 
@@ -164,6 +171,15 @@ void save_svg(Vec2D positions[], double offset) {
   fprintf(path_line_svg, "</svg>");
 }
 
+/**
+ * @brief Calculates a temperature map in form of a multidimensional Array.
+ *
+ * @param positions Array of 2D coordinates.
+ * @param temperatures Array of temperature values at each position.
+ * @param total_timesteps Total number of recorded values ("lines in csv").
+ * @param matrix_resolution Resolution of the output matrix.
+ * @param matrix 2D matrix storing temperature values (for avg calculation).
+ */
 void temperature_map(Vec2D positions[], double temperatures[],
                      int total_timesteps, int matrix_resolution,
                      double matrix[matrix_resolution][matrix_resolution]) {
@@ -236,6 +252,13 @@ void temperature_map(Vec2D positions[], double temperatures[],
   }
 }
 
+/**
+ * @brief Saves the temperature map in SVG format.
+ *
+ * @param matrix Multidimensional Array containing the average values calculated
+ * by the ´temperature_map´ function.
+ * @param resolution Matrix Resolution to traverse the multidimensional array.
+ */
 void save_temperature_map_svg(double *matrix, int resolution) {
   const char *filename = "temperature_map.svg";
   FILE *file = fopen(filename, "w");
@@ -317,23 +340,25 @@ int main() {
   int matrix_resolution = 25;
   double temperature_matrix[matrix_resolution][matrix_resolution];
 
-  fprintf(out, "x,y\n");
+  double max_distance = 0;
+  double total_distance = 0;
+
+  double max_temperature;
+  double min_temperature;
+  int temperature_set = 0;
+
+  double variance = 0;
+  double average = 0;
+
+  fprintf(out, "x,y,rotation\n");
 
   if (csv != NULL) {
     Vec2D current_position = {0, 0};
     Vec2D current_velocity = {0, 0};
     double current_rotation = 0;
-    double max_distance = 0;
-    double total_distance = 0;
-
-    double max_temperature;
-    double min_temperature;
-    int temperature_set = 0;
 
     double temperature_array[100];
     int num_of_timesteps = 0;
-    double variance = 0;
-    double average = 0;
 
     while (feof(csv) == 0) {
       positions[num_of_timesteps] = current_position;
@@ -377,4 +402,7 @@ int main() {
   }
   fclose(csv);
   fclose(out);
+  generate_latex_report("report.tex", matrix_resolution, total_distance,
+                        max_distance, max_temperature, min_temperature, average,
+                        variance);
 }
