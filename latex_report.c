@@ -1,7 +1,42 @@
 #include "latex_report.h"
 #include <stdio.h>
 
-void generate_latex_report(const char *filename, int resolution,
+void generate_pgfplots_plot(const char *spaceship_data_filename,
+                            FILE *latex_report) {
+  FILE *spaceship_data_file = fopen(spaceship_data_filename, "r");
+  if (!spaceship_data_file) {
+    perror("Error opening file");
+    return;
+  }
+
+  fprintf(latex_report, "\\begin{center}");
+  fprintf(latex_report, "\\begin{tikzpicture}\n");
+  fprintf(latex_report, "\t\\begin{axis}[\n");
+  fprintf(latex_report, "\t\txlabel={Seconds},\n");
+  fprintf(latex_report, "\t\tylabel={Temperature},\n");
+  fprintf(latex_report, "\t\tgrid=major\n");
+  fprintf(latex_report, "\t]\n");
+  fprintf(latex_report, "\t\t\\addplot[smooth, thick, blue] coordinates {");
+
+  int counter = 1;
+  double temperature;
+
+  // The * in %*lf supresses assignment, the values are read but not assigned to
+  // any memory location, as acceleration and relative rotation aren't needed
+  // right now (for the temperature plot)
+  while (fscanf(spaceship_data_file, "%*lf,%*lf,%lf", &temperature) == 1) {
+    fprintf(latex_report, "(%d,%.2f) ", counter, temperature);
+    counter++;
+  }
+
+  fprintf(latex_report, "};\n");
+  fprintf(latex_report, "\t\\end{axis}\n");
+  fprintf(latex_report, "\\end{tikzpicture}");
+  fprintf(latex_report, "\\end{center}");
+}
+
+void generate_latex_report(const char *filename,
+                           const char *spaceship_data_filename, int resolution,
                            double total_distance, double farthest_from_start,
                            double max_temp, double min_temp, double avg_temp,
                            double var_temp) {
@@ -16,7 +51,9 @@ void generate_latex_report(const char *filename, int resolution,
   fprintf(file, "\\usepackage[utf8]{inputenc}\n");
   fprintf(file, "\\usepackage{latexsym,amsmath}\n");
   fprintf(file, "\\usepackage{longtable}\n");
-  fprintf(file, "\\usepackage{svg}\n\n");
+  fprintf(file, "\\usepackage{svg}\n");
+  fprintf(file, "\\usepackage{pgfplots}\n\n");
+  fprintf(file, "\\pgfplotsset{compat=1.18}\n\n");
   fprintf(file, "\\setlength{\\parindent}{0in}\n");
   fprintf(file, "\\setlength{\\oddsidemargin}{0in}\n");
   fprintf(file, "\\setlength{\\textwidth}{6.5in}\n");
@@ -92,6 +129,7 @@ void generate_latex_report(const char *filename, int resolution,
   fprintf(file, "\t\\text{Temperature Variance:} & \\quad %.2lf \\\\\n",
           var_temp);
   fprintf(file, "\\end{align*}\n");
+  generate_pgfplots_plot(spaceship_data_filename, file);
 
   fprintf(file, "\\subsection*{Mission Summary}\n");
   fprintf(file, "\\begin{align*}\n");

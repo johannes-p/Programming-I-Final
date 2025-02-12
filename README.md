@@ -24,10 +24,10 @@ Replace `[output_filename]` with your desired executable name.
 To compile the LaTeX report, use:  
 
 ```sh
-pdflatex report.tex --shell-escape
+pdflatex --shell-escape report.tex
 ```
 
-The `--shell-escape` flag is required for SVG generation. Ensure that **Inkscape** is installed and available in your system’s PATH for proper conversion.  
+The `--shell-escape` flag is required for SVG conversion. Ensure that **Inkscape** is installed and available in your system’s PATH for proper conversion.  
 
 ---
 
@@ -53,6 +53,7 @@ To achieve a better grade, the following extensions are implemented:
 - [x] **SVG Trajectory**: Save the flight path as an `.svg` file.
 - [x] **SVG Heatmap**: Save a heatmap based on averaged temperatures as an `.svg` file.
 - [x] **LaTeX Report**: Generate a report containing all calculated values and visuals.
+- [X] **Temperature Plot**: Generate a temperature plot using Pgfplots.
   
 🚀 The journey continues... More coming soon! 🌠
 

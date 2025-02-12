@@ -332,7 +332,9 @@ void save_temperature_map_svg(double *matrix, int resolution) {
 }
 
 int main() {
-  FILE *csv = fopen("spaceship_data_angabe.csv", "r");
+  const char *spaceship_data_filename = "spaceship_data_angabe.csv";
+
+  FILE *csv = fopen(spaceship_data_filename, "r");
   FILE *out = fopen("positions.csv", "w");
   Vec2D positions[100];
   double temperatures[100];
@@ -402,7 +404,7 @@ int main() {
   }
   fclose(csv);
   fclose(out);
-  generate_latex_report("report.tex", matrix_resolution, total_distance,
-                        max_distance, max_temperature, min_temperature, average,
-                        variance);
+  generate_latex_report("report.tex", spaceship_data_filename,
+                        matrix_resolution, total_distance, max_distance,
+                        max_temperature, min_temperature, average, variance);
 }
