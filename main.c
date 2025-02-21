@@ -5,9 +5,12 @@
  */
 
 #include "latex_report.h"
+#include <conio.h>
 #include <float.h>
+#include <io.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 typedef struct Vector2D {
   double x;
@@ -182,7 +185,8 @@ void save_svg(Vec2D positions[], double offset) {
  */
 void temperature_map(Vec2D positions[], double temperatures[],
                      int total_timesteps, int matrix_resolution,
-                     double matrix[matrix_resolution][matrix_resolution]) {
+                     double matrix[matrix_resolution][matrix_resolution],
+                     int print_trajectory) {
 
   int count[matrix_resolution][matrix_resolution]; // Number of values per cell
 
@@ -245,8 +249,12 @@ void temperature_map(Vec2D positions[], double temperatures[],
       if (count[i][j] > 0) {
         matrix[i][j] /= count[i][j]; // calculate average temperature
       }
-      printf(matrix[i][j] > -DBL_MAX ? " ■ " : " ? ");
-      // printf(matrix[i][j] > -DBL_MAX ? " %.1lf " : " ? ", matrix[i][j]);
+      if (print_trajectory) {
+        printf(matrix[i][j] > -DBL_MAX ? " # " : "   ");
+        // Code below could be used instead of the line above to print avg
+        // temperature values printf(matrix[i][j] > -DBL_MAX ? " %.1lf " : " ?
+        // ", matrix[i][j]);
+      }
     }
     printf("\n");
   }
@@ -331,15 +339,100 @@ void save_temperature_map_svg(double *matrix, int resolution) {
   printf("SVG file saved as %s\n", filename);
 }
 
+void checkInput(int *cursor_position, int option_state[], int len_options) {
+  char ch;
+
+  while (1) {
+    ch = getch();
+    // printf("Key pressed (ASCII %d): %c\n", ch, ch);
+    if (ch == 43) { // ASCII Code for '+'
+      if (*cursor_position > 0) {
+        (*cursor_position)--;
+      }
+      break;
+    } else if (ch == 45) { // ASCII Code for '-'
+      if (*cursor_position < len_options - 1) {
+        (*cursor_position)++;
+      }
+      break;
+    } else if (ch == 13) { // ASCII Code for TODO
+      // Enter pressed, toggle current option.
+      option_state[*cursor_position] = !option_state[*cursor_position];
+      break;
+    }
+    // else {
+    //   printf("Unexpected character: %c (ASCII %d)\n", ch, ch);
+    // }
+  }
+}
+
+#define LEN_CLI_OPTIONS 4 // Compile-time constant
+
+void print_interface(char *options[], int option_state[], int cursor_position) {
+  printf("--- MISSION CONTROL PANEL ---\n\n");
+  for (int i = 0; i < LEN_CLI_OPTIONS; i++) {
+    printf(cursor_position == i ? " ? " : "   ");
+    printf(option_state[i] == 1 ? "[X]" : "[ ]");
+    printf(" %s\n", options[i]);
+  }
+  printf("\nControls: +/- [Enter]\n");
+}
+
+void cli(int option_state[]) {
+  char *options[LEN_CLI_OPTIONS] = {"Print Trajectory", "Print Metrics",
+                                    "Generate LaTeX Report", "Liftoff!"};
+  int cursor_position = 0;
+  while (option_state[LEN_CLI_OPTIONS - 1] != 1) { // Check for "liftoff!"
+    print_interface(options, option_state, cursor_position);
+    checkInput(&cursor_position, option_state, LEN_CLI_OPTIONS);
+    system("cls");
+  }
+}
+
+void get_filepath(char *filePath) {
+  while (1) {
+    printf("Enter filename: ");
+    scanf("%1023s", filePath);
+    if (_access(filePath, 0) != -1) {
+      break;
+    } else {
+      printf("File does not exist: %s\n\n", filePath);
+    }
+  }
+  system("cls");
+}
+
+void resolution_input(int *matrix_resolution) {
+  printf("Enter desired resolution: ");
+  if (scanf("%d", matrix_resolution) != 1) {
+    *matrix_resolution = 25; // Default value
+    printf("No input provided, using default value: %d\n", *matrix_resolution);
+    system("pause");
+    system("cls");
+  }
+}
+
 int main() {
-  const char *spaceship_data_filename = "spaceship_data_angabe.csv";
+  // Initialize all options as 0 (off/false)
+  int option_state[LEN_CLI_OPTIONS] = {0};
+  char spaceship_data_filename[1024];
+  int matrix_resolution;
+
+  get_filepath(spaceship_data_filename);
+  cli(option_state);
+
+  // Only ask for matrix resolution if needed
+  if (option_state[0] || option_state[2]) {
+    resolution_input(&matrix_resolution);
+  }
+
+  // const char *spaceship_data_filename = "spaceship_data_angabe.csv";
 
   FILE *csv = fopen(spaceship_data_filename, "r");
   FILE *out = fopen("positions.csv", "w");
   Vec2D positions[100];
   double temperatures[100];
 
-  int matrix_resolution = 25;
   double temperature_matrix[matrix_resolution][matrix_resolution];
 
   double max_distance = 0;
@@ -389,22 +482,26 @@ int main() {
     }
     variance = Variance(temperature_array, num_of_timesteps);
     average = Average(temperature_array, num_of_timesteps);
-
-    printf("Max. Temperature: %lf\nMin. Temperature: %lf\n", max_temperature,
-           min_temperature);
-    printf("Temperature avg: %lf\n", average);
-    printf("Temperature variance: %lf\n\n", variance);
-    printf("Max. Euclidean distance to start: %lf\n", max_distance);
-    printf("Total distance: %lf\n", total_distance);
-
+    if (option_state[1]) {
+      printf("Max. Temperature: %lf\nMin. Temperature: %lf\n", max_temperature,
+             min_temperature);
+      printf("Temperature avg: %lf\n", average);
+      printf("Temperature variance: %lf\n\n", variance);
+      printf("Max. Euclidean distance to start: %lf\n", max_distance);
+      printf("Total distance: %lf\n", total_distance);
+    }
     save_svg(positions, max_distance);
     temperature_map(positions, temperatures, 100, matrix_resolution,
-                    temperature_matrix);
+                    temperature_matrix, option_state[0]);
     save_temperature_map_svg(*temperature_matrix, matrix_resolution);
   }
   fclose(csv);
   fclose(out);
-  generate_latex_report("report.tex", spaceship_data_filename,
-                        matrix_resolution, total_distance, max_distance,
-                        max_temperature, min_temperature, average, variance);
+
+  if (option_state[2]) {
+    generate_latex_report("report.tex", spaceship_data_filename,
+                          matrix_resolution, total_distance, max_distance,
+                          max_temperature, min_temperature, average, variance);
+  }
+  system("pause");
 }

@@ -54,8 +54,9 @@ To achieve a better grade, the following extensions are implemented:
 - [x] **SVG Heatmap**: Save a heatmap based on averaged temperatures as an `.svg` file.
 - [x] **LaTeX Report**: Generate a report containing all calculated values and visuals.
 - [X] **Temperature Plot**: Generate a temperature plot using Pgfplots.
+- [X] **Console Menu**: Allow the user to configure the program behavior via checkboxes.
   
-🚀 The journey continues... More coming soon! 🌠
+🚀 Mission complete. Thanks for being part of the journey! 🌌
 
 ---
 
