@@ -39,7 +39,7 @@ void generate_latex_report(const char *filename,
                            const char *spaceship_data_filename, int resolution,
                            double total_distance, double farthest_from_start,
                            double max_temp, double min_temp, double avg_temp,
-                           double var_temp) {
+                           double var_temp, double max_speed) {
   FILE *file = fopen(filename, "w");
   if (!file) {
     perror("Error opening file");
@@ -133,6 +133,7 @@ void generate_latex_report(const char *filename,
 
   fprintf(file, "\\subsection*{Mission Summary}\n");
   fprintf(file, "\\begin{align*}\n");
+  fprintf(file, "\t\\text{Top Speed:} & \\quad %.3lf \\\\\n", max_speed);
   fprintf(file, "\t\\text{Total distance covered:} & \\quad %.3lf \\\\\n",
           total_distance);
   fprintf(file,

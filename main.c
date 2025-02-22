@@ -29,6 +29,11 @@ void calculate_distance(Vec2D pos1, Vec2D pos2, double *dst) {
   *dst = sqrt(pow(pos2.x - pos1.x, 2) + pow(pos2.y - pos1.y, 2));
 }
 
+double calculate_speed(Vec2D current_velocity) {
+  return sqrt(current_velocity.x * current_velocity.x +
+              current_velocity.y * current_velocity.y);
+}
+
 /**
  * @brief Calculates the variance of an array of doubles.
  *
@@ -435,6 +440,8 @@ int main() {
 
   double temperature_matrix[matrix_resolution][matrix_resolution];
 
+  double max_speed = 0;
+
   double max_distance = 0;
   double total_distance = 0;
 
@@ -479,10 +486,16 @@ int main() {
               current_position.y, current_rotation);
       temperature_array[num_of_timesteps] = temperature;
       num_of_timesteps++;
+      double current_speed = calculate_speed(current_velocity);
+      if (current_speed > max_speed) {
+        max_speed = current_speed;
+      }
     }
+
     variance = Variance(temperature_array, num_of_timesteps);
     average = Average(temperature_array, num_of_timesteps);
     if (option_state[1]) {
+      printf("Top Speed: %lf\n", max_speed);
       printf("Max. Temperature: %lf\nMin. Temperature: %lf\n", max_temperature,
              min_temperature);
       printf("Temperature avg: %lf\n", average);
@@ -501,7 +514,8 @@ int main() {
   if (option_state[2]) {
     generate_latex_report("report.tex", spaceship_data_filename,
                           matrix_resolution, total_distance, max_distance,
-                          max_temperature, min_temperature, average, variance);
+                          max_temperature, min_temperature, average, variance,
+                          max_speed);
   }
   system("pause");
 }
